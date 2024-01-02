@@ -31,5 +31,6 @@ onMounted(() => {
     height: 20px;
     background-color: green;
     border-radius: 50%;
+    z-index: 5;
 }
 </style>

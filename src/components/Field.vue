@@ -2,10 +2,12 @@
 import { ref, watch } from 'vue';
 import LaunchPad from './LaunchPad.vue';
 import Ball from './Ball.vue';
+import Lives from './Lives.vue';
+import Paused from "./Paused.vue"
 
-function getRandomSpeed(x:number = 11) {
-    return Math.floor(Math.random() * x) - 5;
-}
+// function getRandomSpeed(x: number = 11) {
+//     return Math.floor(Math.random() * x) - 5;
+// }
 
 const userIsMovingLaunchPad = ref(false);
 const launchPadPosition = ref(150);
@@ -18,16 +20,35 @@ const initialSpeed = 5;
 const launchPadHeight = 10;
 const ballWidth = 20;
 
+//lives
+const lives = ref(3);
+const currentLife = ref(3);
 
 
 const resetBall = () => {
     position.value.x = launchPadPosition.value + (launchPadWidth.value - ballWidth) / 2;
     position.value.y = 380 - launchPadHeight;
     speed.x = 0;
-    speed.y = initialSpeed;
+    speed.y = userIsMovingLaunchPad ? initialSpeed : 0;
+
 };
 
+const reduceLives = () => {
+    currentLife.value -= 1;
+    speed.y = 0;
+}
+
+watch(currentLife, (newVal) => {
+    console.log("lives", newVal)
+    if (newVal === 0) {
+        //game over
+    }
+})
+
+
+
 const animateBall = () => {
+
     setInterval(() => {
         if (kickOff) {
             position.value.x += speed.x;
@@ -37,6 +58,8 @@ const animateBall = () => {
                 console.log("fall out")
                 // Ball fell out, reset the ball
                 resetBall();
+                reduceLives();
+                kickOff.value = false;
                 return;
             }
 
@@ -77,9 +100,23 @@ const toggleUserIsMovingLaunchPad = (bool: boolean) => {
     kickOff.value = true;
 };
 
-watch(kickOff, () => {
+const updatePosition = (position: number) => {
+    if (kickOff.value === false) return
+    launchPadPosition.value = position
+};
+
+watch(kickOff, (newval) => {
+      if (kickOff.value === false) {
+        // speed.y = initialSpeed;
+    } else {
+        // Calculate speed based on launch pad position
+        const relativeBallPosition = position.value.x - launchPadPosition.value;
+        const normalizedPosition = relativeBallPosition / launchPadWidth.value;
+        const angle = normalizedPosition * Math.PI; // Convert to radians for trigonometric functions
+        speed.x = Math.sin(angle) * 5; // Adjust the speed factor as needed
+        speed.y = -Math.cos(angle) * 5; // Adjust the speed factor as needed
+    }
     animateBall();
-    console.log("startgame")
 })
 
 
@@ -88,14 +125,15 @@ watch(kickOff, () => {
 <!-- Field.vue -->
 <template>
     <div class="field" tabindex="0">
-        {{ userIsMovingLaunchPad ? "true" : "false" }}
-        {{ kickOff ? "true" : "false" }}
         <Ball :launchPadPosition="launchPadPosition" :launchPadWidth="launchPadWidth"
             :userIsMovingLaunchPad="userIsMovingLaunchPad" :ballInMotion="kickOff" :animate-ball="animateBall"
             :reset-ball="resetBall" :position="position" />
         <LaunchPad :launchPadPosition="launchPadPosition" :launchPadWidth="launchPadWidth"
-            :userIsMovingLaunchPad="userIsMovingLaunchPad" @update="toggleUserIsMovingLaunchPad" :ballInMotion="kickOff"
-            :animate-ball="animateBall" :reset-ball="resetBall" :position="position" />
+            :userIsMovingLaunchPad="userIsMovingLaunchPad" @update="toggleUserIsMovingLaunchPad"
+            @update-position="updatePosition" :ballInMotion="kickOff" :animate-ball="animateBall" :reset-ball="resetBall"
+            :position="position" />
+        <Lives :lives="lives" :current-life="currentLife" />
+        <Paused v-if="kickOff === false && currentLife < 3" :animate-ball="animateBall" :current-life="currentLife" />
     </div>
 </template>
 

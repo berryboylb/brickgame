@@ -1,34 +1,39 @@
-<!-- LaunchPad.vue -->
 <template>
-    <div class="launch-pad" :style="{ left: position + 'px' }"></div>
+    <div class="launch-pad" :style="{ left: launchPadPosition + 'px' }"></div>
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { IMovementEmits, IMovement } from '../type';
-const { launchPadWidth } = defineProps<IMovement>()
+
+const { launchPadWidth, launchPadPosition } = defineProps<IMovement>();
 const emit = defineEmits<IMovementEmits>();
 
-
 const toggle = (bool: boolean) => {
-    emit("update", bool)
-}
+    emit("update", bool);
+};
 
-const position = ref(150); // Initial position of the launch pad
+const updateLaunchPad = (position: number) => {
+    emit("updatePosition", position);
+};
+
+const position = ref(launchPadPosition); // Initialize with the prop value
 const speed = 10; // Adjust as needed
 let animationFrameId: number;
 
 const moveLeft = () => {
     position.value -= speed;
+    updateLaunchPad(position.value);
 };
 
 const moveRight = () => {
     position.value += speed;
+    updateLaunchPad(position.value);
 };
 
 const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        toggle(true)
+        toggle(true);
     }
     if (event.key === 'ArrowLeft') {
         moveLeft();
@@ -39,8 +44,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
 
 const handleKeyUp = (event: KeyboardEvent) => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        // Set userIsMovingLaunchPad to false when the arrow key is released
-        toggle(false)
+        toggle(false);
     }
 };
 
@@ -61,21 +65,18 @@ const moveLaunchPad = () => {
     position.value = Math.max(minPosition, Math.min(maxPosition, position.value));
 };
 
+
 onMounted(() => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    // Start the animation loop
     animate();
 });
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('keyup', handleKeyUp);
-    // Stop the animation loop when the component is unmounted
     cancelAnimationFrame(animationFrameId);
 });
-
-
 </script>
 
 <style scoped>
